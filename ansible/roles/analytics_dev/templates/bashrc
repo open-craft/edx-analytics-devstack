@@ -1,0 +1,27 @@
+# Give this user an unlimited bash history
+export HISTFILESIZE=
+export HISTSIZE=
+
+# Make this user's prompt green
+export PS1='\[\e[1;32m\][\u@\h \W]\$\[\e[0m\] '
+
+cd ~/apps
+
+
+
+### Automatic virtualenv activation since there are 4 to juggle
+
+function venv_auto () {
+    venv_expected=$(pwd | grep /home/analytics/apps/ | sed 's:/home/analytics/apps/\([a-z\-]*\).*:/home/analytics/venvs/\1:')
+    if [ $venv_expected ]; then
+        if [ "$VIRTUAL_ENV" != "$venv_expected" ]; then
+            if [ "$VIRTUAL_ENV" != "" ]; then
+                deactivate
+            fi
+            echo "Auto-activating virtualenv $venv_expected"
+            . $venv_expected/bin/activate
+        fi
+    fi
+}
+
+function cd () { builtin cd "$@" && venv_auto; }

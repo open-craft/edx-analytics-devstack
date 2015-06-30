@@ -1,0 +1,164 @@
+- name: Install required packages
+  apt: name={{ item }} state=present
+  with_items:
+    - htop
+    - python-dev
+    - python-pip
+    - python-mysqldb
+    - python-virtualenv
+    - gettext
+    - npm
+    - nodejs-legacy
+    - git
+    - openjdk-7-jre
+    - openjdk-7-jdk
+    - libxml2-dev
+    - libxslt-dev
+    - zlib1g-dev
+    - mysql-server
+    - libmysqlclient-dev
+
+- name: Remove packages we don't want
+  apt: name={{ item }} state=absent purge=yes
+  with_items:
+    # These are sometimes installed already in the vagrant box:
+    - puppet
+    - puppet-common
+    - chef
+    - ohai
+    # To remove more, run apt-get autoremove manually
+
+
+- name: Setup MySQL database
+  mysql_db: name=analytics
+- name: Setup MySQL user
+  mysql_user: name=analytics password=edx priv="analytics.*:ALL"
+
+
+
+- name: Configure analytics user
+  user: name=analytics shell=/bin/bash home=/home/analytics uid=550
+- name: Set permissions for analytics user
+  file: path=/home/analytics state=directory owner=analytics group=www-data mode=755
+- name: Setup bashrc
+  template: src=bashrc dest=/home/analytics/.bashrc owner=analytics
+- name: Setup mysql_creds
+  template: src=mysql_creds dest=/home/analytics/.mysql_creds owner=analytics
+
+- name: Create venvs dir
+  file: path="{{analytics_venvs_dir}}" state=directory owner=analytics
+- name: Create apps dir
+  file: path="{{analytics_apps_dir}}" state=directory owner=analytics
+
+
+##### log files ######
+
+- name: Create log_files dir
+  file: path=/home/analytics/log_files state=directory owner=analytics
+- name: Create log_files/dummy dir
+  file: path=/home/analytics/log_files/dummy state=directory owner=analytics
+- name: Install dummy log file
+  template: src=dummy-tracking.log dest=/home/analytics/log_files/dummy/tracking.log-20150101-1234567890 owner=analytics
+
+##### pipeline ######
+
+- name: Create virtualenv for edx-analytics-pipeline
+  pip:
+    requirements="{{analytics_apps_dir}}/pipeline/requirements/default.txt"
+    virtualenv="{{analytics_venvs_dir}}/pipeline"
+    extra_args="--allow-external mysql-connector-python"
+  sudo_user: analytics
+- name: Setup edx-analytics-pipeline
+  pip:
+    name="{{analytics_apps_dir}}/pipeline"
+    virtualenv="{{analytics_venvs_dir}}/pipeline"
+    extra_args="-e"
+  sudo_user: analytics
+- name: Setup mysql_creds for edx-analytics-pipeline
+  template: src=pipeline.cfg dest=/home/analytics/apps/pipeline/override.cfg
+
+
+##### data-api ######
+
+- name: Create virtualenv for edx-analytics-data-api
+  pip:
+    requirements="{{analytics_apps_dir}}/data-api/requirements/test.txt"
+    virtualenv="{{analytics_venvs_dir}}/data-api"
+  sudo_user: analytics
+- name: Additional requirements for edx-analytics-data-api
+  pip:
+    requirements="{{analytics_apps_dir}}/data-api/requirements/local.txt"
+    virtualenv="{{analytics_venvs_dir}}/data-api"
+  sudo_user: analytics
+- name: Install MySQL-python for edx-analytics-data-api
+  pip: name="MySQL-python" virtualenv="{{analytics_venvs_dir}}/data-api"
+  sudo_user: analytics
+- name: Modify data-api virtualenv to use MySQL as analytics DB (1)
+  lineinfile:
+    dest="{{analytics_venvs_dir}}/data-api/bin/activate"
+    line='    unset DJANGO_SETTINGS_MODULE'
+    insertbefore='    unset VIRTUAL_ENV'
+- name: Modify data-api virtualenv to use MySQL as analytics DB (2)
+  lineinfile:
+    dest="{{analytics_venvs_dir}}/data-api/bin/activate"
+    line='export DJANGO_SETTINGS_MODULE=analyticsdataserver.settings.local_mysql'
+    insertafter='export VIRTUAL_ENV'
+- name: Create data-api sqlite DB and set API key
+  shell: ". {{analytics_venvs_dir}}/data-api/bin/activate && ./manage.py migrate --noinput && ./manage.py set_api_key edx edx"
+  args:
+    chdir: "{{analytics_apps_dir}}/data-api/"
+    creates: "{{analytics_apps_dir}}/data-api/analyticsdataserver/default.db"
+  sudo_user: analytics
+- name: Migrate MySQL Analytics DB
+  shell: ". {{analytics_venvs_dir}}/data-api/bin/activate && ./manage.py migrate --noinput --database=analytics"
+  args:
+    chdir: "{{analytics_apps_dir}}/data-api/"
+  sudo_user: analytics
+
+##### data-api-client ######
+
+- name: Create virtualenv for edx-analytics-data-api-client
+  pip:
+    requirements="{{analytics_apps_dir}}/data-api-client/requirements.txt"
+    virtualenv="{{analytics_venvs_dir}}/data-api-client"
+  sudo_user: analytics
+
+
+##### dashboard ######
+
+- name: Create virtualenv for edx-analytics-dashboard
+  pip:
+    requirements="{{analytics_apps_dir}}/dashboard/requirements/test.txt"
+    virtualenv="{{analytics_venvs_dir}}/dashboard"
+  sudo_user: analytics
+- name: Additional requirements for edx-analytics-dashboard
+  pip:
+    requirements="{{analytics_apps_dir}}/dashboard/requirements/local.txt"
+    virtualenv="{{analytics_venvs_dir}}/dashboard"
+  sudo_user: analytics
+- name: Install node_modules for edx-analytics-dashboard
+  npm: path="{{analytics_apps_dir}}/dashboard"
+  sudo_user: analytics
+- name: Configure dashboard to connect to the LMS on a local devstack (1)
+  lineinfile:
+    dest="{{analytics_apps_dir}}/dashboard/analytics_dashboard/settings/local.py"
+    regexp="SOCIAL_AUTH_EDX_OIDC_URL_ROOT = .*"
+    line="SOCIAL_AUTH_EDX_OIDC_URL_ROOT = 'http://192.168.33.10:8000/oauth2'"
+- name: Configure dashboard to connect to the LMS on a local devstack (2)
+  lineinfile:
+    dest="{{analytics_apps_dir}}/dashboard/analytics_dashboard/settings/local.py"
+    regexp="COURSE_API_URL = .*"
+    line="COURSE_API_URL = 'http://192.168.33.10:8000/api/course_structure/v0/'"
+
+
+##### Fix a bug #####
+
+- name: Copy patch since ansible patch command is broken for remote patching until 2.0 release
+  template:
+    src=luigi-marker-table.patch
+    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py.patch"
+- name: Fix bug where luigi MySQL task hangs forever when table_updates exists
+  patch:
+    src="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py.patch"
+    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py"
+    remote_src=true
