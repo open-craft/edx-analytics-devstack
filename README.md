@@ -36,11 +36,13 @@ you'll need to make a few changes on the LMS devstack:
 1. As the `vagrant` user, sudo edit `/etc/mysql/my.cnf` and change `bind-adress`
    from `127.0.0.1` to `0.0.0.0`.
 2. Then run these commands:
+  
    ```
    service mysql restart
    mysql -u root -e "GRANT SELECT ON *.* TO 'analytics'@'192.168.33.11' IDENTIFIED BY 'edx';"
    ```
 3. Next, as the `edxapp` user, edit `lms/envs/private.py` and add:
+  
    ```
    OAUTH_OIDC_ISSUER = 'http://192.168.33.10:8000/oauth2'
    ```
@@ -62,7 +64,7 @@ automagically activated for you when you `cd`, e.g. `cd ~/apps/pipeline`.
 Ports are *not* forwarded, so you cannot access the apps via localhost:9999
 (too prone to conflicts, with e.g. edX platform devstack). Instead, the
 analytics devstack virtual box has the IP '192.168.33.11' so just connect
-to that. e.g. On your host computer, go to http://192.168.33.11:9999/
+to that. For example, on your host computer, go to http://192.168.33.11:9999/
 
 ### To start the data API ###
 Run this command as the `analytics` user:
