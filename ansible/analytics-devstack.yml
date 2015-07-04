@@ -7,5 +7,5 @@
     - name: Setting hostname
       hostname: name="edx-analytics-devstack"
   roles:
-    - { role: analytics_dev }
     - { role: analytics_node, hdfs_block_size: "16m" }
+    - { role: analytics_dev }

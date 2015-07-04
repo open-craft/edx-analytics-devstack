@@ -44,6 +44,8 @@
   template: src=bashrc dest=/home/analytics/.bashrc owner=analytics
 - name: Setup mysql_creds
   template: src=mysql_creds dest=/home/analytics/.mysql_creds owner=analytics
+- name: Setup mysql_lms_creds
+  template: src=mysql_lms_creds dest=/home/analytics/.mysql_lms_creds owner=analytics
 
 - name: Create venvs dir
   file: path="{{analytics_venvs_dir}}" state=directory owner=analytics
@@ -151,9 +153,9 @@
     line="COURSE_API_URL = 'http://192.168.33.10:8000/api/course_structure/v0/'"
 
 
-##### Fix a bug #####
+##### Fix bugs #####
 
-- name: Copy patch since ansible patch command is broken for remote patching until 2.0 release
+- name: Copy patch 1 since ansible patch command is broken for remote patching until 2.0 release
   template:
     src=luigi-marker-table.patch
     dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py.patch"
@@ -162,3 +164,25 @@
     src="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py.patch"
     dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py"
     remote_src=true
+
+- name: Copy patch 2 since ansible patch command is broken for remote patching until 2.0 release
+  template:
+    src=luigi-hdfs-tmppath.patch
+    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hdfs.py.patch"
+- name: Fix bug where luigi uses doubled temp paths (e.g. /tmp/x/y/z/tmp/x/y/z )
+  patch:
+    src="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hdfs.py.patch"
+    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hdfs.py"
+    remote_src=true
+
+##### HDFS Dirs needed by pipeline #####
+# We assume the analytics_node role has started the HDFS server for us already.
+- name: Create HDFS paths required by the pipeline
+  command: "/usr/local/hadoop/bin/hdfs dfs -mkdir -p {{analytics_hdfs_url}}/{{item}}"
+  sudo_user: "hadoop"
+  with_items:
+    - tmp
+    - warehouse
+    - input
+    - manifest
+    - marker

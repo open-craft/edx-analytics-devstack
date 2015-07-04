@@ -92,6 +92,9 @@
   args:
     creates: /usr/local/hive/bin/hive
 
+# Configure Hive
+- name: Configure Hive
+  template: src=hive-site.xml dest=/usr/local/hive/conf/hive-site.xml
 
 # Install Sqoop
 - name: Downloading Sqoop binary package
@@ -108,3 +111,39 @@
   command: "tar -xzf /var/cache/ansible-sqoop-{{sqoop_version}}.tar.gz --directory /usr/local/sqoop --strip-components=1"
   args:
     creates: /usr/local/sqoop/bin/sqoop
+
+# Upgrade Sqoop commons-io to avoid isSymlink symbol not found error
+- name: Remove outdated commons-io jar
+  file: path=/usr/local/sqoop/lib/commons-io-1.4.jar state=absent
+- name: Installing new commons-io into Sqoop lib dir
+  command: cp /usr/local/hadoop/share/hadoop/mapreduce/lib/commons-io-2.4.jar /usr/local/sqoop/lib/commons-io-2.4.jar
+  args:
+    creates: /usr/local/sqoop/lib/commons-io-2.4.jar
+
+# Install MySQL JDBC driver for Sqoop
+- name: Downloading MySQL JDBC Driver
+  get_url:
+    url="http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-{{mysql_connector_java_version}}.tar.gz"
+    dest="/var/cache/ansible-mysql-connector-java-{{mysql_connector_java_version}}.tar.gz"
+  register: sqoop_mysql_driver_download
+- name: Delete any existing MySQL JDBC jar
+  shell: "rm -f /usr/local/sqoop/lib/mysql-connector-java-*.jar"
+  when: sqoop_mysql_driver_download.changed
+- name: Extracting MySQL JDBC tarball
+  command: "tar --directory /usr/local/sqoop/lib/ -xzf /var/cache/ansible-mysql-connector-java-{{mysql_connector_java_version}}.tar.gz mysql-connector-java-{{mysql_connector_java_version}}/mysql-connector-java-{{mysql_connector_java_version}}-bin.jar --strip-components=1"
+  args:
+    creates: "/usr/local/sqoop/lib/mysql-connector-java-{{mysql_connector_java_version}}-bin.jar"
+
+# Load into HDFS some jars that Sqoop requires
+- name: Ensure HDFS is running
+  command: "bash -c 'source ~/.bashrc && ps x|grep java|grep proc_namenode || start-dfs.sh'"
+  sudo_user: "hadoop"
+- name: Prepare to load Sqoop Jars into HDFS
+  command: /usr/local/hadoop/bin/hdfs dfs -mkdir -p /usr/local/sqoop/lib/
+  sudo_user: "hadoop"
+- name: Load Sqoop lib Jars into HDFS
+  command: /usr/local/hadoop/bin/hdfs dfs -put -f /usr/local/sqoop/lib/ /usr/local/sqoop/
+  sudo_user: "hadoop"
+- name: Load Sqoop into HDFS
+  command: /usr/local/hadoop/bin/hdfs dfs -put -f /usr/local/sqoop/sqoop-1.4.6.jar /usr/local/sqoop/
+  sudo_user: "hadoop"

@@ -151,3 +151,17 @@ Enter `i4x://edX/DemoX-S/problem/a58470ee54cc49ecb2bb7c1b1c0ab43a` as the
 `problem_id` (this is based on the dummy log file in
 `/home/analytics/log_files/dummy`). Click "Try it out!" and ensure a result is
 displayed.
+
+
+Testing the pipeline (Database Imports)
+---------------------------------------
+Once that's working, we can try a database pipeline task.
+
+Make sure the LMS is running in another devstack on the same host and was
+configured as described earlier in "LMS Setup".
+
+Run these commands to kick off the task:
+```
+cd ~/apps/pipeline
+launch-task ImportAllDatabaseTablesTask --local-scheduler
+```

@@ -1,5 +1,6 @@
 hadoop_version: "2.5.2"
 hive_version: "1.2.1"
 sqoop_version: "1.4.6"
+mysql_connector_java_version: "5.1.36"
 java_home: "/usr/lib/jvm/java-7-openjdk-amd64/"
 hdfs_block_size: "128m"
