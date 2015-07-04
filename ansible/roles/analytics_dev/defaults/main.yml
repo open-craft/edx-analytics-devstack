@@ -1,2 +1,3 @@
 analytics_apps_dir: "/home/analytics/apps"
 analytics_venvs_dir: "/home/analytics/venvs"
+analytics_hdfs_url: "hdfs://localhost:9000/edx-analytics-pipeline"

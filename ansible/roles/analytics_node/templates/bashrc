@@ -1,0 +1,7 @@
+. /usr/local/etc/hadoop-env.sh
+
+export HADOOP_LOG_DIR=$HOME/logs
+
+export PATH=$PATH:$HADOOP_PREFIX/sbin
+
+cd ~

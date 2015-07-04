@@ -74,7 +74,7 @@
     virtualenv="{{analytics_venvs_dir}}/pipeline"
     extra_args="-e"
   sudo_user: analytics
-- name: Setup mysql_creds for edx-analytics-pipeline
+- name: Configure edx-analytics-pipeline
   template: src=pipeline.cfg dest=/home/analytics/apps/pipeline/override.cfg
 
 

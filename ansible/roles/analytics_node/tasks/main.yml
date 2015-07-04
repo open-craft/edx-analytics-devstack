@@ -1,0 +1,110 @@
+# Run hive and hadoop locally
+- name: Install required packages
+  apt: name={{ item }} state=present
+  with_items:
+    - htop
+    - openjdk-7-jre
+    - openjdk-7-jdk
+
+- name: Configure hadoop user
+  user: name=hadoop shell=/bin/bash home=/home/hadoop uid=711
+- name: Set permissions for hadoop user
+  file: path=/home/hadoop state=directory owner=hadoop mode=755
+- name: Setup bashrc
+  template: src=bashrc dest=/home/hadoop/.bashrc owner=hadoop
+- name: Setup shared env file
+  template: src=hadoop-env.sh dest=/usr/local/etc/hadoop-env.sh
+- name: SSH folder for hadoop user
+  file: path=/home/hadoop/.ssh state=directory owner=hadoop mode=700
+- name: SSH key for hadoop user
+  command: "ssh-keygen -t rsa -P '' -f /home/hadoop/.ssh/id_rsa"
+  args:
+    creates: /home/hadoop/.ssh/id_rsa
+  sudo_user: hadoop
+  register: setup_hadoop_private_key
+- name: Install SSH key for hadoop user
+  shell: "cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys"
+  sudo_user: hadoop
+  when: setup_hadoop_private_key.changed
+- name: Setup known_hosts
+  command: "ssh -o StrictHostKeyChecking=no localhost echo"
+  sudo_user: hadoop
+- name: Setup known_hosts (2)
+  command: "ssh -o StrictHostKeyChecking=no 0.0.0.0 echo"
+  sudo_user: hadoop
+
+
+# Install Hadoop
+- name: Downloading Hadoop binary package
+  get_url:
+    url="http://apache.sunsite.ualberta.ca/hadoop/common/hadoop-{{hadoop_version}}/hadoop-{{hadoop_version}}.tar.gz"
+    dest="/var/cache/ansible-hadoop-{{hadoop_version}}.tar.gz"
+  register: hadoop_download
+- name: Deleting any existing Hadoop installation
+  file: path=/usr/local/hadoop state=absent
+  when: hadoop_download.changed
+- name: Prep for Hadoop installation
+  file: path=/usr/local/hadoop state=directory
+- name: Extracting Hadoop
+  command: "tar -xzf /var/cache/ansible-hadoop-{{hadoop_version}}.tar.gz --directory /usr/local/hadoop --strip-components=1"
+  args:
+    creates: /usr/local/hadoop/bin/hadoop
+
+# Configure Hadoop
+- name: Configure Hadoop (JAVA_HOME)
+  lineinfile:
+    dest="/usr/local/hadoop/etc/hadoop/hadoop-env.sh"
+    line='export JAVA_HOME="{{java_home}}"'
+    regexp='export JAVA_HOME=.*'
+- name: Configure Hadoop (HADOOP_PREFIX)
+  lineinfile:
+    dest="/usr/local/hadoop/etc/hadoop/hadoop-env.sh"
+    line='export HADOOP_PREFIX="/usr/local/hadoop"'
+    regexp='export HADOOP_PREFIX=.*'
+    insertafter='export JAVA_HOME=.*'
+- name: Configure Hadoop (single-node pseudo-distributed mode)
+  template: src=hadoop-site.xml dest=/usr/local/hadoop/etc/hadoop/core-site.xml
+- name: Configure HDFS (single-node pseudo-distributed mode)
+  template: src=hdfs-site.xml dest=/usr/local/hadoop/etc/hadoop/hdfs-site.xml
+- name: Create Hadoop logs folder
+  file: path=/home/hadoop/logs state=directory owner=hadoop
+- name: Initialize HDFS
+  command: /usr/local/hadoop/bin/hdfs namenode -format
+  args:
+    creates: /home/hadoop/hdfs/name/current/VERSION
+  sudo_user: hadoop
+  register: initialize_hdfs
+
+
+# Install Hive
+- name: Downloading Hive binary package
+  get_url:
+    url="http://apache.sunsite.ualberta.ca/hive/hive-{{hive_version}}/apache-hive-{{hive_version}}-bin.tar.gz"
+    dest="/var/cache/ansible-hive-{{hive_version}}.tar.gz"
+  register: hive_download
+- name: Deleting any existing Hive installation
+  file: path=/usr/local/hive state=absent
+  when: hive_download.changed
+- name: Prep for Hive installation
+  file: path=/usr/local/hive state=directory
+- name: Extracting Hive
+  command: "tar -xzf /var/cache/ansible-hive-{{hive_version}}.tar.gz --directory /usr/local/hive --strip-components=1"
+  args:
+    creates: /usr/local/hive/bin/hive
+
+
+# Install Sqoop
+- name: Downloading Sqoop binary package
+  get_url:
+    url="http://apache.sunsite.ualberta.ca/sqoop/{{sqoop_version}}/sqoop-{{sqoop_version}}.bin__hadoop-2.0.4-alpha.tar.gz"
+    dest="/var/cache/ansible-sqoop-{{sqoop_version}}.tar.gz"
+  register: sqoop_download
+- name: Deleting any existing Sqoop installation
+  file: path=/usr/local/sqoop state=absent
+  when: sqoop_download.changed
+- name: Prep for Sqoop installation
+  file: path=/usr/local/sqoop state=directory
+- name: Extracting Sqoop
+  command: "tar -xzf /var/cache/ansible-sqoop-{{sqoop_version}}.tar.gz --directory /usr/local/sqoop --strip-components=1"
+  args:
+    creates: /usr/local/sqoop/bin/sqoop
