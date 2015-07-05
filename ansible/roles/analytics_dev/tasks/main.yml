@@ -164,6 +164,15 @@
     src="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py.patch"
     dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py"
     remote_src=true
+- name: Copy luigi patch 2 since ansible patch command is broken for remote patching until 2.0 release
+  template:
+    src=luigi-six-path-backport.patch
+    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hadoop.py.patch"
+- name: Backport fix to error seen when the python package six is installed
+  patch:
+    src="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hadoop.py.patch"
+    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hadoop.py"
+    remote_src=true
 
 
 ##### HDFS Dirs needed by pipeline #####

@@ -17,10 +17,8 @@ Setup
 Make sure you have Vagrant and Ansible available on your system.
 Then clone this repository, cd into it, and run `vagrant up`. Magic!
 
-(Note it may take quite a while to provision the devstack at first - about 7
-minutes for "Install required packages" and 20 minutes total. If you think
-the provisioner might be hung, just `vagrant ssh` in different tab and run
-`htop || top` to see what's running.)
+(Note it may take quite a while to provision the devstack at first - about 23
+minutes on a MacBook Pro at the time of writing.)
 
 If you want to update the system, try fixing bugs, or resume a failed
 `vagrant up`, run the command `vagrant provision` to do so. You can re-provision
@@ -46,11 +44,11 @@ you'll need to make a few changes on the LMS devstack:
    ```
    OAUTH_OIDC_ISSUER = 'http://192.168.33.10:8000/oauth2'
    ```
-4. Finally, while the LMS is running, go to /admin/oauth2/client/2/ and add a
-  new client with URL `http://192.168.33.11:9999/` and redirect URI
-  `http://192.168.33.11:9999/complete/edx-oidc/`. Client type confidential. Save
-  and leave the browser tab open as you'll need the client ID and secret when
-  setting up the Insights dashboard (see "Usage" below).
+4. Finally, while the LMS is running, go to /admin/oauth2/client/ and add a new
+   client with URL `http://192.168.33.11:9999/` and redirect URI
+   `http://192.168.33.11:9999/complete/edx-oidc/`. Client type confidential.
+   Save and leave the browser tab open as you'll need the client ID and secret
+   when setting up the Insights dashboard (see "Usage" below).
 
 
 Usage
@@ -87,9 +85,15 @@ make develop migrate
 ```
 Access it at http://192.168.33.11:9999/
 
+Notes:
+* The data-api must be running for the dashboard to be fully functional.
+* If you get timing errors during the OAuth login, run
+  `sudo ntpdate -s time.nist.gov` on both devstacks to fix their clocks.
+
 
 Tests
 -----
+To run the test suites of each of the four analytics apps:
 ```
 vagrant up && vagrant ssh
 sudo su analytics
@@ -99,9 +103,10 @@ cd ~/apps/data-api-client/; make test
 cd ~/apps/dashboard/; make requirements.js; ./node_modules/.bin/r.js -o build.js; make validate
 ```
 
+
 Testing the pipeline (Answer Distribution)
 ------------------------------------------
-Let's test the pipeline.
+Let's try using the analytics pipeline to process data.
 
 First, we need to make sure the Hadoop file system is available. Go to
 http://192.168.33.11:50070/ and see if the status page loads. If not, you'll
@@ -123,10 +128,17 @@ Next, run these two commands to process this log file and store the results in
 MySQL:
 ```
 cd ~/apps/pipeline
-launch-task AnswerDistributionToMySQLTaskWorkflow --local-scheduler --remote-log-level DEBUG --include *tracking.log* --src hdfs://localhost:9000/test_input --dest hdfs://localhost:9000/test_answer_dist --name test_task
+launch-task AnswerDistributionToMySQLTaskWorkflow --local-scheduler --remote-log-level DEBUG --include *tracking.log* --src hdfs://localhost:9000/test_input --dest hdfs://localhost:9000/test_answer_dist --name test_task --n-reduce-tasks 3
 ```
 
 Note:
+* If this seems stuck, it's likely due to MySQL being up to its usual antics,
+  and an unpatched version of luigi being used. Press ctrl-c to stop it, then
+  make sure that there is no second `luigi` folder showing up in the
+  `edx-analytics-pipeline` repository root:
+  `rm -rf boto* filechunkio* luigi* opaque_keys* stevedore* html5lib* six.py*`
+  You can also try running `vagrant provision` again to make sure
+  that the system version of luigi is patched.
 * If this fails with "ProgrammingError: 1054 (42S22): Unknown column
   'answer_value_numeric' in 'field list'", it's due to an inconsistency between
   the pipeline and the data API. To workaround this, run this command:
@@ -134,11 +146,9 @@ Note:
   mysql -u root analytics --execute="ALTER TABLE answer_distribution ADD answer_value_numeric DOUBLE;"
   ```
 
-Now, to check if the task worked, run:
-```
-hdfs dfs -ls /test_answer_dist
-```
-You should see two files listed.
+Now, to check if the task worked, go to
+http://192.168.33.11:50070/explorer.html#/test_answer_dist . You should see two
+folders listed.
 
 Now run:
 ```
@@ -159,8 +169,8 @@ Testing the pipeline (Database Imports)
 ---------------------------------------
 Once that's working, we can try a database pipeline task.
 
-Make sure the LMS is running in another devstack on the same host and was
-configured as described earlier in "LMS Setup".
+Make sure the LMS devstack is running in on the same host and was configured as
+described earlier in "LMS Setup" (so the pipeline can connect to its MySQL DB).
 
 Run these commands to kick off the task:
 ```
