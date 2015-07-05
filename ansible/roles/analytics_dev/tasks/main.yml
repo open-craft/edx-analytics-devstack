@@ -53,7 +53,7 @@
   file: path="{{analytics_apps_dir}}" state=directory owner=analytics
 
 
-##### log files ######
+##### dummy log files ######
 
 - name: Create log_files dir
   file: path=/home/analytics/log_files state=directory owner=analytics
@@ -61,6 +61,15 @@
   file: path=/home/analytics/log_files/dummy state=directory owner=analytics
 - name: Install dummy log file
   template: src=dummy-tracking.log dest=/home/analytics/log_files/dummy/tracking.log-20150101-1234567890 owner=analytics
+
+##### Hive configuration ######
+
+- name: Install hiverc
+  template: src=hiverc dest=/home/analytics/.hiverc owner=analytics
+- name: Setup MySQL database for Hive
+  mysql_db: name=analytics_hive
+- name: Setup MySQL user for Hive
+  mysql_user: name=analytics_hive password=edx priv="analytics_hive.*:ALL"
 
 ##### pipeline ######
 

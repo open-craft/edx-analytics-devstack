@@ -182,7 +182,6 @@ If that completed successfully, you should be able to see the data stored in
 Hive, using these commands:
 ```
 $ hive
-hive> set hive.metastore.warehouse.dir=hdfs://localhost:9000/edx-analytics-pipeline/warehouse;
 hive> show tables;
 OK
 auth_user

@@ -1,0 +1,8 @@
+set hive.metastore.warehouse.dir={{analytics_hdfs_url}}/warehouse;
+
+set javax.jdo.option.ConnectionURL=jdbc:mysql://localhost/analytics_hive;
+set javax.jdo.option.ConnectionDriverName=com.mysql.jdbc.Driver;
+set javax.jdo.option.ConnectionUserName=analytics_hive;
+set javax.jdo.option.ConnectionPassword=edx;
+set datanucleus.autoCreateSchema=true;
+set hive.metastore.schema.verification=true;

@@ -11,4 +11,8 @@
     <value>/home/${user.name}/hive/warehouse</value>
     <description>location of default database for the warehouse</description>
   </property>
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>  
+    <value>jdbc:derby:;databaseName=/home/${user.name}/.hive_metastore_db;create=true</value>
+  </property>
 </configuration>

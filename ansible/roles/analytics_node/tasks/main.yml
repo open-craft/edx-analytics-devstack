@@ -120,19 +120,23 @@
   args:
     creates: /usr/local/sqoop/lib/commons-io-2.4.jar
 
-# Install MySQL JDBC driver for Sqoop
+# Install MySQL JDBC driver for Hive and Sqoop
 - name: Downloading MySQL JDBC Driver
   get_url:
     url="http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-{{mysql_connector_java_version}}.tar.gz"
     dest="/var/cache/ansible-mysql-connector-java-{{mysql_connector_java_version}}.tar.gz"
-  register: sqoop_mysql_driver_download
+  register: java_mysql_driver_download
 - name: Delete any existing MySQL JDBC jar
-  shell: "rm -f /usr/local/sqoop/lib/mysql-connector-java-*.jar"
-  when: sqoop_mysql_driver_download.changed
-- name: Extracting MySQL JDBC tarball
+  shell: "rm -f /usr/local/sqoop/lib/mysql-connector-java-*.jar /usr/local/hive/lib/mysql-connector-java-*.jar"
+  when: java_mysql_driver_download.changed
+- name: Extracting MySQL JDBC tarball to Sqoop
   command: "tar --directory /usr/local/sqoop/lib/ -xzf /var/cache/ansible-mysql-connector-java-{{mysql_connector_java_version}}.tar.gz mysql-connector-java-{{mysql_connector_java_version}}/mysql-connector-java-{{mysql_connector_java_version}}-bin.jar --strip-components=1"
   args:
     creates: "/usr/local/sqoop/lib/mysql-connector-java-{{mysql_connector_java_version}}-bin.jar"
+- name: Extracting MySQL JDBC tarball to Hive
+  command: "tar --directory /usr/local/hive/lib/ -xzf /var/cache/ansible-mysql-connector-java-{{mysql_connector_java_version}}.tar.gz mysql-connector-java-{{mysql_connector_java_version}}/mysql-connector-java-{{mysql_connector_java_version}}-bin.jar --strip-components=1"
+  args:
+    creates: "/usr/local/hive/lib/mysql-connector-java-{{mysql_connector_java_version}}-bin.jar"
 
 # Load into HDFS some jars that Sqoop requires
 - name: Ensure HDFS is running
