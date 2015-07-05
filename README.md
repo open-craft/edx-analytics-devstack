@@ -167,3 +167,25 @@ Run these commands to kick off the task:
 cd ~/apps/pipeline
 launch-task ImportAllDatabaseTablesTask --local-scheduler
 ```
+
+If that completed successfully, you should be able to see the data stored in
+Hive, using these commands:
+```
+$ hive
+hive> set hive.metastore.warehouse.dir=hdfs://localhost:9000/edx-analytics-pipeline/warehouse;
+hive> show tables;
+OK
+auth_user
+auth_userprofile
+student_courseenrollment
+Time taken: 0.952 seconds, Fetched: 3 row(s)
+hive> SELECT * FROM auth_user;
+```
+You should now see a list of all the users that existed on the LMS system at the
+time the `ImportAllDatabaseTablesTask` ran:
+```
+1 honor 2015-06-29 19:50:00 2014-11-19 04:06:46 true  false false honor@example.com 2015-07-05
+2 audit 2014-11-19 04:06:49 2014-11-19 04:06:49 true  false false audit@example.com 2015-07-05
+3 verified  2015-06-25 19:06:35 2014-11-19 04:06:52 true  false false verified@example.com  2015-07-05
+4 staff 2015-07-03 19:17:16 2014-11-19 04:06:54 true  true  true  staff@example.com 2015-07-05
+```

@@ -155,7 +155,7 @@
 
 ##### Fix bugs #####
 
-- name: Copy patch 1 since ansible patch command is broken for remote patching until 2.0 release
+- name: Copy luigi patch since ansible patch command is broken for remote patching until 2.0 release
   template:
     src=luigi-marker-table.patch
     dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py.patch"
@@ -165,15 +165,6 @@
     dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py"
     remote_src=true
 
-- name: Copy patch 2 since ansible patch command is broken for remote patching until 2.0 release
-  template:
-    src=luigi-hdfs-tmppath.patch
-    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hdfs.py.patch"
-- name: Fix bug where luigi uses doubled temp paths (e.g. /tmp/x/y/z/tmp/x/y/z )
-  patch:
-    src="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hdfs.py.patch"
-    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hdfs.py"
-    remote_src=true
 
 ##### HDFS Dirs needed by pipeline #####
 # We assume the analytics_node role has started the HDFS server for us already.
