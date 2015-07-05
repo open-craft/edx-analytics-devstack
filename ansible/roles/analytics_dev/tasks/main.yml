@@ -195,3 +195,28 @@
     - input
     - manifest
     - marker
+
+# Remove temporary files that show up in the pipeline app folder during certain tasks
+# These files include python packages and are sometimes imported when we dont't want
+# them to be, causing issues.
+- stat: path="{{analytics_apps_dir}}/pipeline/luigi"
+  register: bad_python_files_in_pipeline
+- name: Create directory to hold bad files
+  file: path="{{analytics_apps_dir}}/pipeline/unwanted_pkgs_i_found" state=directory
+  when: bad_python_files_in_pipeline.stat.exists == True
+- name: Remove bad files from pipeline app
+  shell: "mv -f {{analytics_apps_dir}}/pipeline/{{item}} {{analytics_apps_dir}}/pipeline/unwanted_pkgs_i_found/ || echo not found"
+  with_items:
+    - "bson"
+    - "boto*"
+    - "filechunkio*"
+    - "luigi*"
+    - "opaque_keys*"
+    - "stevedore*"
+    - "mrrunner.py"
+    - "html5lib*"
+    - "six.py*"
+    - "ciso8601.so"
+    - "cjson.so"
+
+  when: bad_python_files_in_pipeline.stat.exists == True

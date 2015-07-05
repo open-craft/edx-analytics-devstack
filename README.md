@@ -86,7 +86,8 @@ make develop migrate
 Access it at http://192.168.33.11:9999/
 
 Notes:
-* The data-api must be running for the dashboard to be fully functional.
+* The data-api and the LMS must both be running for the dashboard to be fully
+  functional.
 * If you get timing errors during the OAuth login, run
   `sudo ntpdate -s time.nist.gov` on both devstacks to fix their clocks.
 
@@ -134,11 +135,10 @@ launch-task AnswerDistributionToMySQLTaskWorkflow --local-scheduler --remote-log
 Note:
 * If this seems stuck, it's likely due to MySQL being up to its usual antics,
   and an unpatched version of luigi being used. Press ctrl-c to stop it, then
-  make sure that there is no second `luigi` folder showing up in the
-  `edx-analytics-pipeline` repository root:
-  `rm -rf boto* filechunkio* luigi* opaque_keys* stevedore* html5lib* six.py*`
-  You can also try running `vagrant provision` again to make sure
-  that the system version of luigi is patched.
+  run `vagrant provision` on your host, and it will patch luigi [again] and
+  remove any potentially problematic copies of luigi that may have shown up.
+* If this fails with `IndexError: list index out of range`, run
+  `vagrant provision` on your host, and it will patch luigi [again] to fix that.
 * If this fails with "ProgrammingError: 1054 (42S22): Unknown column
   'answer_value_numeric' in 'field list'", it's due to an inconsistency between
   the pipeline and the data API. To workaround this, run this command:
