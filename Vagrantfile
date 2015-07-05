@@ -29,7 +29,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Virtualbox config:
   config.vm.provider "virtualbox" do |v|
-    v.memory = 1024
+    v.memory = 1536
   end
 
   # Ansible Playbook
