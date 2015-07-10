@@ -43,6 +43,7 @@ you'll need to make a few changes on the LMS devstack:
   
    ```
    OAUTH_OIDC_ISSUER = 'http://192.168.33.10:8000/oauth2'
+   ANALYTICS_DASHBOARD_URL = 'http://192.168.33.11:9999'
    ```
 4. Finally, while the LMS is running, go to /admin/oauth2/client/ and add a new
    client with URL `http://192.168.33.11:9999/` and redirect URI
