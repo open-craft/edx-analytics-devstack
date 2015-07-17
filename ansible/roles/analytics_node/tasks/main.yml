@@ -74,6 +74,10 @@
     creates: /home/hadoop/hdfs/name/current/VERSION
   sudo_user: hadoop
   register: initialize_hdfs
+- name: Register HDFS with Upstart
+  template: src=hdfs.conf dest=/etc/init/hdfs.conf
+- name: Start HDFS
+  service: name=hdfs state=started
 
 
 # Install Hive
@@ -140,7 +144,7 @@
 
 # Load into HDFS some jars that Sqoop requires
 - name: Ensure HDFS is running
-  command: "bash -c 'source ~/.bashrc && ps h -C java|grep proc_namenode || (start-dfs.sh && hdfs dfsadmin -safemode wait)'"
+  command: "bash -c 'source ~/.bashrc && hdfs dfsadmin -safemode wait'"
   sudo_user: "hadoop"
 - name: Prepare to load Sqoop Jars into HDFS
   command: /usr/local/hadoop/bin/hdfs dfs -mkdir -p /usr/local/sqoop/lib/

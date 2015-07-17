@@ -110,17 +110,7 @@ Testing the pipeline (Answer Distribution)
 ------------------------------------------
 Let's try using the analytics pipeline to process data.
 
-First, we need to make sure the Hadoop file system is available. Go to
-http://192.168.33.11:50070/ and see if the status page loads. If not, you'll
-need to run these commands to start HDFS:
-```
-vagrant ssh
-sudo su hadoop
-start-dfs.sh
-```
-Later, if you want to shut it down, just run `stop-dfs.sh`.
-
-Now, as the `analytics` user, we need to load a log file to test with. Run this
+As the `analytics` user, we need to load a log file to test with. Run this
 command which will load `tracking.log-20150101-123456789`:
 ```
 hdfs dfs -put ~/log_files/dummy/ /test_input
