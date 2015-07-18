@@ -8,6 +8,10 @@ export PS1='\[\e[1;32m\][\u@\h \W]\$\[\e[0m\] '
 # Load Hadoop/Hive/Sqoop/etc into PATH
 . /usr/local/etc/hadoop-env.sh
 
+# For some reason luigi is not always using the override.cfg file while running
+# the pipeline, but we can force it with this:
+export LUIGI_CONFIG_PATH=~/apps/pipeline/override.cfg
+
 cd ~/apps
 
 

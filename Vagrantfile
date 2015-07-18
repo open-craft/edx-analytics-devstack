@@ -8,6 +8,9 @@ if ARGV[0] == "up"
     if not Dir.exists?(path)
       puts "Cloning " + proj
       system "git clone https://github.com/edx/" + proj + ".git '" + path + "'"
+      if proj == "edx-analytics-pipeline"
+        system "cd edx-analytics-pipeline && git checkout bradenm/devstack"
+      end
     end
   end
   misc_dir = File.join(base_dir, "misc")

@@ -162,28 +162,6 @@
     line="COURSE_API_URL = 'http://192.168.33.10:8000/api/course_structure/v0/'"
 
 
-##### Fix bugs #####
-
-- name: Copy luigi patch since ansible patch command is broken for remote patching until 2.0 release
-  template:
-    src=luigi-marker-table.patch
-    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py.patch"
-- name: Fix bug where luigi MySQL task hangs forever when table_updates exists
-  patch:
-    src="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py.patch"
-    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/contrib/mysqldb.py"
-    remote_src=true
-- name: Copy luigi patch 2 since ansible patch command is broken for remote patching until 2.0 release
-  template:
-    src=luigi-six-path-backport.patch
-    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hadoop.py.patch"
-- name: Backport fix to error seen when the python package six is installed
-  patch:
-    src="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hadoop.py.patch"
-    dest="{{analytics_venvs_dir}}/pipeline/local/lib/python2.7/site-packages/luigi/hadoop.py"
-    remote_src=true
-
-
 ##### HDFS Dirs needed by pipeline #####
 # We assume the analytics_node role has started the HDFS server for us already.
 - name: Create HDFS paths required by the pipeline
@@ -196,6 +174,7 @@
     - input
     - manifest
     - marker
+
 
 # Remove temporary files that show up in the pipeline app folder during certain tasks
 # These files include python packages and are sometimes imported when we dont't want
