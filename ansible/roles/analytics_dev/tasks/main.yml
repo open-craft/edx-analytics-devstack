@@ -191,7 +191,8 @@
   sudo_user: "hadoop"
   with_items:
     - tmp
-    - warehouse
+    - warehouse/calendar
+    - warehouse/course_activity
     - input
     - manifest
     - marker
