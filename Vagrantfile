@@ -10,6 +10,10 @@ if ARGV[0] == "up"
       system "git clone https://github.com/edx/" + proj + ".git '" + path + "'"
     end
   end
+  misc_dir = File.join(base_dir, "misc")
+  if not Dir.exists?(misc_dir)
+    Dir.mkdir misc_dir
+  end
 end
 
 
@@ -26,6 +30,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.synced_folder "edx-analytics-data-api", "/home/analytics/apps/data-api", nfs: true
   config.vm.synced_folder "edx-analytics-data-api-client", "/home/analytics/apps/data-api-client", nfs: true
   config.vm.synced_folder "edx-analytics-dashboard", "/home/analytics/apps/dashboard", nfs: true
+  # For easy transferring of log files, editing other python projects, etc:
+  config.vm.synced_folder "misc", "/home/analytics/misc", nfs: true
 
   # Virtualbox config:
   config.vm.provider "virtualbox" do |v|
