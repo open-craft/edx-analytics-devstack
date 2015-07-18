@@ -51,6 +51,9 @@ you'll need to make a few changes on the LMS devstack:
    Save and leave the browser tab open as you'll need the client ID and secret
    when setting up the Insights dashboard (see "Usage" below).
 
+5. If you want an easy way to transfer log files from the LMS into the analytics
+   devstack's HDFS store, copy the included `upload-tracking-logs.sh` script to
+   the LMS devstack and run it as the `vagrant` user.
 
 Usage
 -----
