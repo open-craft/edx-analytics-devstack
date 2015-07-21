@@ -126,20 +126,6 @@ cd ~/apps/pipeline
 launch-task AnswerDistributionToMySQLTaskWorkflow --local-scheduler --remote-log-level DEBUG --include *tracking.log* --src hdfs://localhost:9000/test_input --dest hdfs://localhost:9000/test_answer_dist --name test_task --n-reduce-tasks 3
 ```
 
-Note:
-* If this seems stuck, it's likely due to MySQL being up to its usual antics,
-  and an unpatched version of luigi being used. Press ctrl-c to stop it, then
-  run `vagrant provision` on your host, and it will patch luigi [again] and
-  remove any potentially problematic copies of luigi that may have shown up.
-* If this fails with `IndexError: list index out of range`, run
-  `vagrant provision` on your host, and it will patch luigi [again] to fix that.
-* If this fails with "ProgrammingError: 1054 (42S22): Unknown column
-  'answer_value_numeric' in 'field list'", it's due to an inconsistency between
-  the pipeline and the data API. To workaround this, run this command:
-  ```
-  mysql -u root analytics --execute="ALTER TABLE answer_distribution ADD answer_value_numeric DOUBLE;"
-  ```
-
 Now, to check if the task worked, go to
 http://192.168.33.11:50070/explorer.html#/test_answer_dist . You should see two
 folders listed.
@@ -159,36 +145,53 @@ Enter `i4x://edX/DemoX-S/problem/a58470ee54cc49ecb2bb7c1b1c0ab43a` as the
 displayed.
 
 
-Testing the pipeline (Database Imports)
----------------------------------------
-Once that's working, we can try a database pipeline task.
+Running the pipeline
+--------------------
+Once that's working, we can try running the pipeline to process data from the
+LMS.
 
-Make sure the LMS devstack is running in on the same host and was configured as
-described earlier in "LMS Setup" (so the pipeline can connect to its MySQL DB).
+1. Make sure the LMS devstack is running in on the same host and was configured
+   as described earlier in "LMS Setup" (so the pipeline can connect to its MySQL
+   DB).
+2. On the LMS devstack, run `upload-tracking-logs.sh` as the `vagrant` user (see
+   "LMS Setup").
+3. Go to http://192.168.33.11:50070/explorer.html#/edx-analytics-pipeline/input
+   and verify that the log files are present in HDFS.
+4. On the analytics devstack, as the `analytics` user, run these commands:
 
-Run these commands to kick off the task:
-```
-cd ~/apps/pipeline
-launch-task ImportAllDatabaseTablesTask --local-scheduler
-```
+   ```
+   cd ~/apps/pipeline
+   launch-task ImportAllDatabaseTablesTask --local-scheduler
+   ```
+   If that completed successfully, you should be able to see the data stored in
+   Hive, using these commands:
 
-If that completed successfully, you should be able to see the data stored in
-Hive, using these commands:
-```
-$ hive
-hive> show tables;
-OK
-auth_user
-auth_userprofile
-student_courseenrollment
-Time taken: 0.952 seconds, Fetched: 3 row(s)
-hive> SELECT * FROM auth_user;
-```
-You should now see a list of all the users that existed on the LMS system at the
-time the `ImportAllDatabaseTablesTask` ran:
-```
-1 honor 2015-06-29 19:50:00 2014-11-19 04:06:46 true  false false honor@example.com 2015-07-05
-2 audit 2014-11-19 04:06:49 2014-11-19 04:06:49 true  false false audit@example.com 2015-07-05
-3 verified  2015-06-25 19:06:35 2014-11-19 04:06:52 true  false false verified@example.com  2015-07-05
-4 staff 2015-07-03 19:17:16 2014-11-19 04:06:54 true  true  true  staff@example.com 2015-07-05
-```
+   ```
+   $ hive
+   hive> show tables;
+   OK
+   auth_user
+   auth_userprofile
+   student_courseenrollment
+   Time taken: 0.952 seconds, Fetched: 3 row(s)
+   hive> SELECT * FROM auth_user;
+   ```
+   You should now see a list of all the users that existed on the LMS system at the
+   time the `ImportAllDatabaseTablesTask` ran:
+
+   ```
+   1 honor 2015-06-29 19:50:00 2014-11-19 04:06:46 true  false false honor@example.com 2015-07-05
+   2 audit 2014-11-19 04:06:49 2014-11-19 04:06:49 true  false false audit@example.com 2015-07-05
+   3 verified  2015-06-25 19:06:35 2014-11-19 04:06:52 true  false false verified@example.com  2015-07-05
+   4 staff 2015-07-03 19:17:16 2014-11-19 04:06:54 true  true  true  staff@example.com 2015-07-05
+   ```
+5. Now continue to run more parts of the pipeline, processing LMS data and
+   storing it in the analytics database. Use these commands:
+
+   ```
+   launch-task CourseActivityWeeklyTask --local-scheduler --n-reduce-tasks 3 --weeks 8
+   launch-task ImportEnrollmentsIntoMysql --local-scheduler --n-reduce-tasks 3
+   ```
+   If those tasks completed without error, fire up the `data-api` server and the
+   Insights Dashboard server (see "Usage" above), then go to the dashboard at
+   http://192.168.33.11:9999 and explore the reports that are now available.
