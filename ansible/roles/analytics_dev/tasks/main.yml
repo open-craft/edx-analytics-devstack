@@ -120,11 +120,7 @@
     chdir: "{{analytics_apps_dir}}/data-api/"
     creates: "{{analytics_apps_dir}}/data-api/analyticsdataserver/default.db"
   sudo_user: analytics
-- name: Migrate MySQL Analytics DB
-  shell: ". {{analytics_venvs_dir}}/data-api/bin/activate && ./manage.py migrate --noinput --database=analytics"
-  args:
-    chdir: "{{analytics_apps_dir}}/data-api/"
-  sudo_user: analytics
+
 
 ##### data-api-client ######
 
